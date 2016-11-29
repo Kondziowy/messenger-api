@@ -42,7 +42,7 @@ def valid_channel(channel: str):
 
 @hug.get(examples='username=admin&password=admin')
 def get_token(username: valid_user, password: hug.types.text):
-    """ Get user token for all API operations """
+    """ Get user token for all API operations. Each call will generate a unique token. """
     user_token = hashlib.sha224((username+password).encode("raw_unicode_escape")).hexdigest()
     users[username]["token"] = user_token
     tokens[user_token] = username
@@ -50,7 +50,7 @@ def get_token(username: valid_user, password: hug.types.text):
 
 @hug.get(examples='token=<token>&username=carmack')
 def add_user(token: valid_admin_token, username: hug.types.text):
-    """ Add a new user to the system. Only works with admin user token. Will raise an error if user already exists """
+    """ Add a new user to the system. Only works with admin user token. Will raise a 404 error if user already exists """
     if username in users:
         return {"errors": {"username": "Username already exists"}}
     users[username] = {}
@@ -62,7 +62,7 @@ def add_channel(token: valid_admin_token, channel: hug.types.text):
     channels[channel] = []
     return {"channel": channel}
 
-@hug.post()
+@hug.post(examples='')
 def send_message(token: valid_token, channel: valid_channel, message:hug.types.text, files):
     """ Send a message to the given channel. Message can be up to 1024 characters, attachments can be .jpg images up to 2MB size """
     m = Message(tokens[token], message,files)
@@ -75,7 +75,7 @@ def read_channel(token: valid_token, channel: valid_channel, from_timestamp: hug
         containing the following fields: user, message, ts, files. """
     return {"messages": [json.dumps(m.__dict__) for m in channels[channel] if m.ts >= from_timestamp]}
 
-@hug.get()
+@hug.get(examples='token=<token>')
 def clean_db(token: valid_admin_token):
     """ Remove all created entities - channels, users, messages"""
     global users, tokens, channels
